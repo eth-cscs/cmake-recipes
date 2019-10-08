@@ -92,7 +92,7 @@ endfunction()
 #   `set(... CACHE ...)` is still stuck with the old behaviour. 
 #
 #   https://cmake.org/cmake/help/v3.15/command/set.html#set-cache-entry
-#   https://cmake.org/cmake/help/v3.15/command/set.html#set-cache-entry
+#   https://cmake.org/cmake/help/v3.15/policy/CMP0077.html
 #
 if(NOT DEFINED MKL_ROOT)
     set(MKL_ROOT $ENV{MKLROOT} CACHE PATH "MKL's root directory.")
@@ -152,28 +152,23 @@ endif ()
 
 # Find ScaLAPACK
 #
+set(MPI_DETERMINE_LIBRARY_VERSION ON)
 find_package(MPI)
 if (MPI_FOUND)
     __mkl_find_library(MKL_SCALAPACK_LIB mkl_scalapack_${_mkl_lp})
 
-    # Note: this requires running `mpirun`.
-    #
-    if (NOT OPENMPI_FOUND)
-        include(${CMAKE_CURRENT_LIST_DIR}/check_for_openmpi.cmake)
-        check_for_openmpi()
-    endif()
-    
-    if(OPENMPI_FOUND) # OpenMPI
-        if(APPLE)
-            message(FATAL_ERROR "Only MPICH is supported on Apple.")
-        endif()
-         __mkl_find_library(MKL_BLACS_LIB mkl_blacs_openmpi_${_mkl_lp})
-    else()            # MPICH
+    string(FIND "${MPI_CXX_LIBRARY_VERSION_STRING}" "Open MPI" OMPI_POS)
+    if(OMPI_POS STREQUAL "-1")  # MPICH
         if(APPLE)
             __mkl_find_library(MKL_BLACS_LIB mkl_blacs_mpich_${_mkl_lp})
         else()
             __mkl_find_library(MKL_BLACS_LIB mkl_blacs_intelmpi_${_mkl_lp})
         endif()
+    else()                      # OpenMPI
+        if(APPLE)
+            message(FATAL_ERROR "Only MPICH is supported on Apple.")
+        endif()
+         __mkl_find_library(MKL_BLACS_LIB mkl_blacs_openmpi_${_mkl_lp})
     endif()
 
     find_package_handle_standard_args(MKL_SCALAPACK REQUIRED_VARS MKL_BLACS_LIB
