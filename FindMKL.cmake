@@ -6,12 +6,11 @@ Example usage
 ^^^^^^^^^^^^^
 
   find_package(MKL REQUIRED OPTIONAL_COMPONENTS SCALAPACK)
-  target_link_libraries(... MKL::MKL)
-  target_link_libraries(... MKL::SCALAPACK)
+  target_link_libraries(... mkl::mkl)
+  target_link_libraries(... mkl::scalapack)
 
-Note: Targets linking to MKL::SCALAPACK need not link to MKL::MKL. It is NOT 
+Note: Targets linking to `mkl::scalapack` need not link to `mkl::mkl`. It is NOT 
       an error if both targets are linked though.
-
 
 Options
 ^^^^^^^
@@ -28,20 +27,17 @@ Options
 ``MKL_64BIT``
   ON|OFF   (default: OFF / 32bit interface)
 
-
 Components
 ^^^^^^^^^^
 
 ``SCALAPACK``
 
-
 Imported targets 
 ^^^^^^^^^^^^^^^^
 
-``MKL::MKL``
+``mkl::mkl``
 
-``MKL::SCALAPACK``
-
+``mkl::scalapack``
 
 Result variables
 ^^^^^^^^^^^^^^^^
@@ -81,15 +77,15 @@ endfunction()
 # Options
 #
 # The `NOT DEFINED` guards on CACHED variables are needed to make sure that 
-# normal variables with of same name always take precedence*.
+# normal variables of the same name always take precedence*.
 #
 # * There are many caveats with CACHE variables in CMake. Before version 
-#   3.12, both the `option()` command and `set(... CACHE ...)` would 
-#   override normal variables if cached equivalents don't exist or they 
-#   exisit but their type is not specified (e.g. command line arguments: 
-#   -DFOO=ON instead of -DFOO:BOOL=ON). For 3.13 with policy CMP0077, 
-#   `option()` no longer overrides normal variables of the same name.
-#   `set(... CACHE ...)` is still stuck with the old behaviour. 
+#   3.12, both `option()` and `set(... CACHE ...)` would override normal 
+#   variables if cached equivalents don't exist or they exisit but their type 
+#   is not specified (e.g. command line arguments: -DFOO=ON instead of 
+#   -DFOO:BOOL=ON). For 3.13 with policy CMP0077, `option()` no longer overrides 
+#   normal variables of the same name. `set(... CACHE ...)` is still stuck with 
+#   the old behaviour. 
 #
 #   https://cmake.org/cmake/help/v3.15/command/set.html#set-cache-entry
 #   https://cmake.org/cmake/help/v3.15/policy/CMP0077.html
@@ -113,13 +109,13 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4) # 32 bit
     set(_mkl_libpath_suffix "lib/ia32")
 endif()
 
-if (WIN32)
+if(WIN32)
     string(APPEND _mkl_libpath_suffix "_win")
-elseif (APPLE)
+elseif(APPLE)
     string(APPEND _mkl_libpath_suffix "_mac")
-else ()
+else()
     string(APPEND _mkl_libpath_suffix "_lin")
-endif ()
+endif()
 
 # Determine 32bit or 64bit interface is used
 #
@@ -140,25 +136,28 @@ mark_as_advanced(MKL_INCLUDE_DIR)
 __mkl_find_library(MKL_CORE_LIB mkl_core)
 __mkl_find_library(MKL_INTERFACE_LIB mkl_intel_${_mkl_lp})
 
-if (MKL_PARALLEL)
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+if(MKL_PARALLEL)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
         __mkl_find_library(MKL_THREADING_LIB mkl_gnu_thread)
-    else ()
+    else()
         __mkl_find_library(MKL_THREADING_LIB mkl_intel_thread)
-    endif ()
-else ()
+    endif()
+else()
     __mkl_find_library(MKL_THREADING_LIB mkl_sequential)
-endif ()
+endif()
 
-# Find ScaLAPACK
+# ScaLAPACK component
 #
-set(MPI_DETERMINE_LIBRARY_VERSION ON)
-find_package(MPI)
-if (MPI_FOUND)
-    __mkl_find_library(MKL_SCALAPACK_LIB mkl_scalapack_${_mkl_lp})
+list(FIND MKL_FIND_COMPONENTS SCALAPACK _mkl_find_scalapack)
+if(NOT ${_mkl_find_scalapack} STREQUAL "-1")
 
-    string(FIND "${MPI_CXX_LIBRARY_VERSION_STRING}" "Open MPI" OMPI_POS)
-    if(OMPI_POS STREQUAL "-1")  # MPICH
+    find_package(MPI COMPONENTS CXX)
+    execute_process(COMMAND mpirun --version OUTPUT_VARIABLE MPIRUN_OUTPUT)
+    string(FIND "${MPIRUN_OUTPUT}" "Open MPI" _ompi_pos)
+    
+    # BLACS
+    #
+    if(_ompi_pos STREQUAL "-1")  # MPICH
         if(APPLE)
             __mkl_find_library(MKL_BLACS_LIB mkl_blacs_mpich_${_mkl_lp})
         else()
@@ -170,53 +169,62 @@ if (MPI_FOUND)
         endif()
          __mkl_find_library(MKL_BLACS_LIB mkl_blacs_openmpi_${_mkl_lp})
     endif()
-
+    
+    # ScaLAPACK
+    #
+    __mkl_find_library(MKL_SCALAPACK_LIB mkl_scalapack_${_mkl_lp})
+    
     find_package_handle_standard_args(MKL_SCALAPACK REQUIRED_VARS MKL_BLACS_LIB
-                                                                  MKL_SCALAPACK_LIB)
+                                                                  MKL_SCALAPACK_LIB
+                                                                  MPI_FOUND)
+endif()
+
+# Dependencies
+#
+find_package(Threads)
+set(_mkl_openmp_found "")
+set(_mkl_threading_backend "")
+if(MKL_PARALLEL)
+    find_package(OpenMP COMPONENTS CXX)
+    set(_mkl_openmp_found "OpenMP_CXX_FOUND")
+    set(_mkl_threading_backend "OpenMP::OpenMP_CXX")
 endif()
 
 find_package_handle_standard_args(MKL REQUIRED_VARS MKL_CORE_LIB 
                                                     MKL_THREADING_LIB 
                                                     MKL_INTERFACE_LIB 
                                                     MKL_INCLUDE_DIR
+                                                    Threads_FOUND
+                                                    ${_mkl_openmp_found}
                                       HANDLE_COMPONENTS)
 
-
-# Define the MKL::MKL targets
+# Define the mkl::mkl targets
 #
-if (MKL_FOUND AND NOT TARGET MKL::MKL)
-    find_package(Threads REQUIRED)
+if(MKL_FOUND AND NOT TARGET mkl::mkl)
+    add_library(mkl::core UNKNOWN IMPORTED)
+    set_target_properties(mkl::core PROPERTIES IMPORTED_LOCATION ${MKL_CORE_LIB})
 
-    set(_mkl_threading_backend "")
-    if(MKL_PARALLEL)
-        find_package(OpenMP REQUIRED)
-        set(_mkl_threading_backend "OpenMP::OpenMP_CXX")
-    endif()
+    add_library(mkl::threading UNKNOWN IMPORTED)
+    set_target_properties(mkl::threading PROPERTIES IMPORTED_LOCATION ${MKL_THREADING_LIB})
 
-    add_library(MKL::CORE UNKNOWN IMPORTED)
-    set_target_properties(MKL::CORE PROPERTIES IMPORTED_LOCATION ${MKL_CORE_LIB})
+    add_library(mkl::blas_interface UNKNOWN IMPORTED)
+    set_target_properties(mkl::blas_interface PROPERTIES IMPORTED_LOCATION ${MKL_INTERFACE_LIB})
 
-    add_library(MKL::THREADING UNKNOWN IMPORTED)
-    set_target_properties(MKL::THREADING PROPERTIES IMPORTED_LOCATION ${MKL_THREADING_LIB})
-
-    add_library(MKL::BLAS_INTERFACE UNKNOWN IMPORTED)
-    set_target_properties(MKL::BLAS_INTERFACE PROPERTIES IMPORTED_LOCATION ${MKL_INTERFACE_LIB})
-
-    add_library(MKL::MKL INTERFACE IMPORTED)
-    set_target_properties(MKL::MKL PROPERTIES 
+    add_library(mkl::mkl INTERFACE IMPORTED)
+    set_target_properties(mkl::mkl PROPERTIES 
         INTERFACE_INCLUDE_DIRECTORIES "${MKL_INCLUDE_DIR}"
-        INTERFACE_LINK_LIBRARIES "MKL::BLAS_INTERFACE;MKL::THREADING;MKL::CORE;${_mkl_threading_backend};Threads::Threads")
+        INTERFACE_LINK_LIBRARIES "mkl::blas_interface;mkl::threading;mkl::core;${_mkl_threading_backend};Threads::Threads")
 
-    # Define the MKL::SCALAPACK targets
+    # Define the mkl::scalapack targets
     #
-    if (MKL_SCALAPACK_FOUND AND NOT TARGET MKL::SCALAPACK)
-        add_library(MKL::BLACS UNKNOWN IMPORTED)
-        set_target_properties(MKL::BLACS PROPERTIES IMPORTED_LOCATION ${MKL_BLACS_LIB})
+    if(MKL_SCALAPACK_FOUND AND NOT TARGET mkl::scalapack)
+        add_library(mkl::blacs UNKNOWN IMPORTED)
+        set_target_properties(mkl::blacs PROPERTIES IMPORTED_LOCATION ${MKL_BLACS_LIB})
 
-        add_library(MKL::SCALAPACK UNKNOWN IMPORTED)
-        set_target_properties(MKL::SCALAPACK PROPERTIES 
+        add_library(mkl::scalapack UNKNOWN IMPORTED)
+        set_target_properties(mkl::scalapack PROPERTIES 
           IMPORTED_LOCATION "${MKL_SCALAPACK_LIB}"
-          INTERFACE_LINK_LIBRARIES "MKL::BLAS_INTERFACE;MKL::THREADING;MKL::CORE;MKL::BLACS;${_mkl_threading_backend};Threads::Threads"
+          INTERFACE_LINK_LIBRARIES "mkl::blas_interface;mkl::threading;mkl::core;mkl::blacs;${_mkl_threading_backend};Threads::Threads"
           )
     endif()
 endif()
