@@ -75,8 +75,10 @@ else()
 endif()
 
 message(STATUS "LAPACK_TYPE=${LAPACK_TYPE}")
-message(STATUS "LAPACK_INCLUDE_DIR: ${LAPACK_INCLUDE_DIR}")
-message(STATUS "LAPACK_LIBRARY: ${LAPACK_LIBRARY}")
+if (NOT LAPACK_TYPE STREQUAL "Compiler")
+  message(STATUS ${LAPACK_INCLUDE_DIR})
+  message(STATUS ${LAPACK_LIBRARY})
+endif()
 
 mark_as_advanced(
   LAPACK_TYPE
