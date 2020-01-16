@@ -136,6 +136,7 @@ function(__mkl_find_library _name)
     find_library(${_name}
         NAMES ${ARGN}
         HINTS ${MKL_ROOT}
+              ${MKL_ROOT}/mkl
         PATH_SUFFIXES ${_mkl_libpath_suffix}
                       lib
         )
@@ -186,6 +187,7 @@ endif()
 #
 find_path(MKL_INCLUDE_DIR mkl.h
     HINTS ${MKL_ROOT}/include
+          ${MKL_ROOT}/mkl/include
     )
 mark_as_advanced(MKL_INCLUDE_DIR)
 
