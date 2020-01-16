@@ -124,7 +124,7 @@ Note: Mixing GCC and Intel OpenMP backends is a bad idea.
 
 #]=======================================================================]
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 # Modules
 #
@@ -153,11 +153,10 @@ find_package(OpenMP COMPONENTS CXX)
 # The `NOT DEFINED` guards on CACHED variables are needed to make sure that
 # normal variables of the same name always take precedence*.
 #
-# * There are many caveats with CACHE variables in CMake. Before version
-#   3.12, both `option()` and `set(... CACHE ...)` would override normal
-#   variables if cached equivalents don't exist or they exisit but their type
-#   is not specified (e.g. command line arguments: -DFOO=ON instead of
-#   -DFOO:BOOL=ON). For 3.13 with policy CMP0077, `option()` no longer overrides
+# * In v3.12, both `option()` and `set(... CACHE ...)` override normal
+#   variables if a) cached equivalents don't exist or b) their type is not 
+#   specified (e.g. command line arguments: -DFOO=ON instead of
+#   -DFOO:BOOL=ON). Since v3.13 with policy CMP0077, `option()` no longer overrides
 #   normal variables of the same name. `set(... CACHE ...)` is still stuck with
 #   the old behaviour.
 #
