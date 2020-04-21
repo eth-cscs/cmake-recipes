@@ -65,7 +65,7 @@ Note: dependencies are handled for you (MPI, OpenMP, ...)
 Imported targets
 ^^^^^^^^^^^^^^^^
 
-MKL (BLAS, LAPACK, FFT) tarets:
+MKL (BLAS, LAPACK, FFT) targets:
 
   mkl::mkl_[gf|intel]_[32bit|64bit]_[seq|omp|tbb]_[st|dyn] e.g.
 
@@ -97,14 +97,13 @@ Not supported
 
 cmake_minimum_required(VERSION 3.12)
 
-# Modules
-#
-include(FindPackageHandleStandardArgs)
-
-if(NOT (CMAKE_C_COMPILER_LOADED OR
-        CMAKE_CXX_COMPILER_LOADED OR
-        CMAKE_Fortran_COMPILER_LOADED))
-    message(FATAL_ERROR "FindMKL requires Fortran, C, or C++ to be enabled.")
+# check if compatible compiler is found
+if(CMAKE_C_COMPILER_LOADED OR
+   CMAKE_CXX_COMPILER_LOADED OR
+   CMAKE_Fortran_COMPILER_LOADED)
+    set(_mkl_compiler_found TRUE)
+else()
+    set(_mkl_compiler_found FALSE)
 endif()
 
 # Dependencies
@@ -116,7 +115,7 @@ find_package(OpenMP COMPONENTS CXX)
 # If MKL_ROOT is not set, set it via the env variable MKLROOT.
 #
 if(NOT DEFINED MKL_ROOT)
-    set(MKL_ROOT $ENV{MKLROOT} CACHE PATH "MKL's root directory.")
+    set(MKL_ROOT $ENV{MKLROOT})
 endif()
 
 # Determine MKL's library folder
@@ -143,9 +142,8 @@ else() # LINUX
     set(_mkl_static_lib ".a")
 endif()
 set(_mkl_search_paths "${MKL_ROOT}"
-                      "${MKL_ROOT}/lib"
-                      "${MKL_ROOT}/mkl/lib"
-                      "${MKL_ROOT}/compiler/lib")
+                      "${MKL_ROOT}/mkl"
+                      "${MKL_ROOT}/compiler")
 
 # Functions: finds both static and shared MKL libraries
 #
@@ -221,11 +219,13 @@ __mkl_find_library(MKL_SCALAPACK_64BIT_LIB mkl_scalapack_ilp64)
 
 # Check if core libs were found
 #
+include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(MKL REQUIRED_VARS MKL_INCLUDE_DIR
-                                                    Threads_FOUND)
+                                                    Threads_FOUND
+                                                    _mkl_compiler_found)
 
 # Sequential has no threading dependency. There is currently no TBB module 
-# shipped with CMake. The dependency is not accounted for. (FIXME)
+# shipped with CMake. The dependency is not accounted for.
 #
 set(_mkl_dep_found_SEQ TRUE)
 set(_mkl_dep_found_TBB TRUE)
