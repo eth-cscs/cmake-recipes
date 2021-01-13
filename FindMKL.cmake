@@ -5,7 +5,7 @@
 # Copyright (c) 2018-2019, ETH Zurich
 # BSD 3-Clause License. All rights reserved.
 #
-# Author: Teodor Nikolov (teodor.nikolov22@gmail.com)
+# Author: Teodor Nikolov (tnikolov@cscs.ch)
 #
 #[=======================================================================[.rst:
 FindMKL
@@ -81,7 +81,7 @@ ScaLAPACK targets:
 
   mkl::scalapack_[mpich|ompi]_[gf|intel]_[32bit|64bit]_[seq|omp|tbb]_[st|dyn] e.g.
 
-  mkl::scalapack_intel_mpich_64bit_omp_dyn
+  mkl::scalapack_mpich_intel_64bit_omp_dyn
 
 Result variables
 ^^^^^^^^^^^^^^^^
@@ -124,6 +124,7 @@ set(_mkl_libpath_suffix "lib/intel64")
 if(CMAKE_SIZEOF_VOID_P EQUAL 4) # 32 bit
     set(_mkl_libpath_suffix "lib/ia32")
 endif()
+list(APPEND _mkl_libpath_suffix "lib")
 
 if(WIN32)
     string(APPEND _mkl_libpath_suffix "_win")
