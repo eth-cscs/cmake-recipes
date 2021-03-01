@@ -124,7 +124,6 @@ set(_mkl_libpath_suffix "lib/intel64")
 if(CMAKE_SIZEOF_VOID_P EQUAL 4) # 32 bit
     set(_mkl_libpath_suffix "lib/ia32")
 endif()
-list(APPEND _mkl_libpath_suffix "lib")
 
 if(WIN32)
     string(APPEND _mkl_libpath_suffix "_win")
@@ -143,6 +142,7 @@ else() # LINUX
     set(_mkl_static_lib ".a")
 endif()
 set(_mkl_search_paths "${MKL_ROOT}"
+                      "${MKL_ROOT}/lib"
                       "${MKL_ROOT}/mkl"
                       "${MKL_ROOT}/compiler")
 
@@ -225,7 +225,7 @@ find_package_handle_standard_args(MKL REQUIRED_VARS MKL_INCLUDE_DIR
                                                     Threads_FOUND
                                                     _mkl_compiler_found)
 
-# Sequential has no threading dependency. There is currently no TBB module 
+# Sequential has no threading dependency. There is currently no TBB module
 # shipped with CMake. The dependency is not accounted for.
 #
 set(_mkl_dep_found_SEQ TRUE)
