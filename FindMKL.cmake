@@ -136,7 +136,6 @@ elseif(APPLE)
     set(_mkl_shared_lib ".dylib")
     set(_mkl_static_lib ".a")
 else() # LINUX
-    string(APPEND _mkl_libpath_suffix "_lin")
     set(_mkl_libname_prefix "lib")
     set(_mkl_shared_lib ".so")
     set(_mkl_static_lib ".a")
