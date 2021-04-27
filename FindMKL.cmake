@@ -120,13 +120,6 @@ endif()
 
 # Determine MKL's library folder
 #
-
-# Note:
-# _mkl_libpath_suffix has to enter the platform selection either:
-#   - as a string or
-#   - as a single-element list
-# because then the following platform customization adds a second element with the "_<os>" suffix
-
 set(_mkl_libpath_suffix "lib/intel64")
 if(CMAKE_SIZEOF_VOID_P EQUAL 4) # 32 bit
     set(_mkl_libpath_suffix "lib/ia32")
